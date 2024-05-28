@@ -3,10 +3,11 @@ from aiohttp import ClientResponse
 import asyncio
 from io import BytesIO
 from zipfile import ZipFile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from tqdm import tqdm
 import constants as c
 import os
+import shutil
 
 
 async def extracting(response: ClientResponse, counter: int) -> None:
@@ -48,11 +49,12 @@ async def get_files() -> None:
             if response.status == 200 and counter != 90:
                 await extracting(response, counter)
                 counter += 1
+    os.system('cls')
 
 
 def get_tasks(session: aiohttp.ClientSession):
     tasks = []
-    current_date = datetime.today() - timedelta(days=1)
+    current_date = date.today() - timedelta(days=1)
     for i in range(150):
         if current_date.weekday() < 5:
             url = f"{c.URL}{current_date.strftime(
@@ -63,6 +65,13 @@ def get_tasks(session: aiohttp.ClientSession):
             tasks.append(session.get(url, ssl=False))
         current_date = current_date - timedelta(days=1)
     return tasks
+
+    
+
+def reload():
+    print("Downloading new fresh set of files")
+    shutil.rmtree('DATA')
+    asyncio.run(get_files())
 
 
 if __name__ == "__main__":
