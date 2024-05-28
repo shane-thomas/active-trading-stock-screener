@@ -1,4 +1,5 @@
 import aiohttp
+from aiohttp import ClientResponse
 import asyncio
 from io import BytesIO
 from zipfile import ZipFile
@@ -8,49 +9,48 @@ import constants as c
 import os
 
 
-async def extract(response, counter):
+async def extracting(response: ClientResponse, counter: int) -> None:
     cwd = os.getcwd()
-    resp = await response.read()
-    z = ZipFile(BytesIO(resp))
-    filename = z.namelist()[0]
-    z.extract(filename, f"{cwd}/{c.THREE_MONTHS_PATH}")
+    data = await response.read()
+    zipfile = ZipFile(BytesIO(data))
+    filename = zipfile.namelist()[0]
+    zipfile.extract(filename, f"{cwd}/{c.THREE_MONTHS_PATH}")
     path = f"{cwd}/{c.THREE_MONTHS_PATH}/{filename}"
     await rename(path)
     if counter < 5:
-        z.extract(filename, f"{cwd}/{c.FIVE_DAYS_PATH}")
+        zipfile.extract(filename, f"{cwd}/{c.FIVE_DAYS_PATH}")
         path = f"{cwd}/{c.FIVE_DAYS_PATH}/{filename}"
         await rename(path)
     if counter < 30:
-        z.extract(filename, f"{cwd}/{c.ONE_MONTH_PATH}")
+        zipfile.extract(filename, f"{  cwd}/{c.ONE_MONTH_PATH}")
         path = f"{cwd}/{c.ONE_MONTH_PATH}/{filename}"
         await rename(path)
 
 
-async def rename(path):
+async def rename(path: str) -> None:
     date_str = path.split('cm')[1][:-8]
-    date_obj = datetime.strptime(date_str, "%d%b%Y")
+    datetime_obj = datetime.strptime(date_str, "%d%b%Y")
     new_path = path.split(
-        'cm')[0] + date_obj.strftime(c.DATE_FORMAT) + "-NSE-EQ.csv"
+        'cm')[0] + datetime_obj.strftime(c.DATE_FORMAT) + "-NSE-EQ.csv"
     try:
         os.rename(path, new_path)
     except FileExistsError:
         exit
 
 
-async def get_files():
+async def get_files() -> None:
     tasks = []
     counter = 0
     async with aiohttp.ClientSession() as session:
         tasks = get_tasks(session)
         responses = await (asyncio.gather(*tasks))
         for response in tqdm(responses, desc="Downloading files"):
-            if response.status == 200 and counter!=90:
-                await extract(response, counter)
+            if response.status == 200 and counter != 90:
+                await extracting(response, counter)
                 counter += 1
-        
 
 
-def get_tasks(session):
+def get_tasks(session: aiohttp.ClientSession):
     tasks = []
     current_date = datetime.today() - timedelta(days=1)
     for i in range(150):
