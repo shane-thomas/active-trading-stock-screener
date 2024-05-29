@@ -1,5 +1,4 @@
 import os
-import time
 import constants as c
 from tqdm import tqdm
 import pandas as pd
@@ -21,8 +20,6 @@ def update_workbook(sheet_name, header_columns):
     worksheet = workbook[sheet_name]
 
     if worksheet.max_row == 1:
-        print("printing column headers")
-        time.sleep(5)
         for col_num, column_title in enumerate(header_columns, 1):
             worksheet.cell(row=1, column=col_num, value=column_title)
 
@@ -88,7 +85,7 @@ def roc(directory: str):
         current_report.head(50).to_excel(
             writer, sheet_name, index=False, startrow=start_row, header=None)
 
-    color_cells()
+    color_cells(sheet_name, start_row)
     
 
 if __name__ == "__main__":
