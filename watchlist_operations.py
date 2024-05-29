@@ -9,10 +9,10 @@ from random import randint
 
 
 def rand_color():
-    alpha = "4D"  # 50% transparent
-    red = format(randint(0, 255), '02X')
-    green = format(randint(0, 255), '02X')
-    blue = format(randint(0, 255), '02X')
+    alpha = "40"  # 50% transparent
+    red = format(randint(128, 255), '02X')
+    green = format(randint(128, 255), '02X')
+    blue = format(randint(128, 255), '02X')
     return f"{alpha}{red}{green}{blue}"
 
 
