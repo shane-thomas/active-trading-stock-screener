@@ -54,7 +54,8 @@ async def get_files() -> None:
 
 def get_tasks(session: aiohttp.ClientSession):
     tasks = []
-    current_date = date.today() - timedelta(days=1)
+    # current_date = date.today() - timedelta(days=1)
+    current_date = date(2024, 5, 25)
     for i in range(150):
         if current_date.weekday() < 5:
             url = f"{c.URL}{current_date.strftime(
@@ -70,7 +71,6 @@ def get_tasks(session: aiohttp.ClientSession):
 
 def reload():
     print("Downloading new fresh set of files")
-    shutil.rmtree('DATA')
     asyncio.run(get_files())
 
 
