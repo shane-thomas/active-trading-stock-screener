@@ -55,7 +55,7 @@ async def get_files() -> None:
 def get_tasks(session: aiohttp.ClientSession):
     tasks = []
     # current_date = date.today() - timedelta(days=1)
-    current_date = date(2024, 5, 23)
+    current_date = date(2024, 5, 27)
     for i in range(150):
         if current_date.weekday() < 5:
             url = f"{c.URL}{current_date.strftime(

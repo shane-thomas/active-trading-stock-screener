@@ -36,10 +36,9 @@ def main():
     diff = {}
 
     roc_path = os.path.join(cwd, roc_file)
-    data_folder = os.path.join(cwd, "DATA")
     log_file = os.path.join(cwd, 'log.txt')
     # current_date = date.today()
-    current_date = date(2024, 5, 25)
+    current_date = date(2024, 5, 27)
     if not os.path.isfile(log_file):
         write_data(current_date, diff)
 
@@ -70,8 +69,7 @@ def main():
         workbook.close()
 
     for directory in c.DIRECTORIES:
-        roc(directory, diff)
-    print(diff)
+        roc(directory)
 
 
 if __name__ == "__main__":
