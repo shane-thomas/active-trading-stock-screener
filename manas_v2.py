@@ -1,7 +1,6 @@
 import os
-from tqdm import tqdm
 import xlsxwriter
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 import constants as c
 from data_operations import reload
 from watchlist_operations import calculate_roc, calculate_roc_subset, get_symbols_subset
@@ -40,8 +39,7 @@ def main():
     roc_path = os.path.join(cwd, roc_file)
     log_file = os.path.join(cwd, 'log.txt')
     results_path = os.path.join(cwd, c.RESULTS_FILE)
-    # current_date = date.today()
-    current_date = date(2024, 5, 30)
+    current_date = date.today()
     if not os.path.isfile(log_file):
         write_data(current_date, diff)
 

@@ -2,11 +2,9 @@ import os
 import constants as c
 from tqdm import tqdm
 import pandas as pd
-import xlsxwriter
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 from random import randint
-import time
 
 
 def rand_color():
@@ -147,20 +145,10 @@ def calculate_roc_subset(symbols: list[str], directory: str):
     current_report.insert(len(current_report.columns),
                           'D3PREVCLOSE', value=current_report['SYMBOL'].map(d3))
 
-
-
-    # print(len(current_report.columns))
-    # time.sleep(5)
-    
     current_report.insert(len(current_report.columns),'ROC', value=current_report['SYMBOL'].map(roc_dict))
-   
-    # print(len(current_report.columns))
-    # time.sleep(5)
 
     current_report.insert(len(current_report.columns), 'LC', value=current_report['SYMBOL'].map(low_dict))
-    
-    # print(len(current_report.columns))
-    # time.sleep(5)
+
 
     current_report = current_report.sort_values(by='ROC', ascending=True)
     current_report = current_report.query(c.QUERY)
