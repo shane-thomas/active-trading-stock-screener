@@ -2,9 +2,11 @@ import os
 import constants as c
 from tqdm import tqdm
 import pandas as pd
+import xlsxwriter
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 from random import randint
+import time
 
 
 def rand_color():
@@ -24,13 +26,14 @@ def update_workbook(sheet_name, header_columns):
             worksheet.cell(row=1, column=col_num, value=column_title)
 
     if sheet_name == '5 DAYS' and worksheet.max_row == 251:
-        worksheet.move_range("A52:O251", rows=-50)
+        worksheet.move_range("A52:P251", rows=-50)
 
     if sheet_name == ('30 DAYS' or '90 DAYS') and worksheet.max_row == 751:
-        worksheet.move_range("A52:O751", rows=-50)
+        worksheet.move_range("A52:P751", rows=-50)
 
     workbook.save(c.ROC_FILE)
     workbook.close()
+
 
 def color_cells(sheet_name: str, start_row: int):
     argb = rand_color()
@@ -44,38 +47,50 @@ def color_cells(sheet_name: str, start_row: int):
     workbook.save(c.ROC_FILE)
     workbook.close()
 
-def roc(directory: str):
+
+def get_symbols_subset(directory: str) -> list[str]:
+    sheet = directory.split('/')[1]
+    worksheet = pd.read_excel(c.ROC_FILE, sheet_name=sheet)
+    symbols = worksheet['SYMBOL'].tolist()
+    return sorted(set(symbols))
+
+
+def calculate_roc(directory: str):
     sheet_name = directory.split('/')[1]
 
     roc_dict = {}
+    dataframes = []
 
-    files_list = [file for file in os.listdir(
-        directory) if file.endswith(".csv")]
-
-    # Getting current report
+    files_list = [file for file in os.listdir(directory) if file.endswith(".csv")]
+    
     current_report = pd.read_csv(os.path.join(directory, files_list[-1]))
-    df = pd.read_csv(os.path.join(directory, files_list[0]))
+    current_report = current_report.query('SERIES == "EQ"').reset_index(drop=True)
 
+    
+    os.system('cls')
+
+    for file in files_list:
+        file_path = os.path.join(directory, file)
+        df = pd.read_csv(file_path)
+        df = df.query('SERIES == "EQ"')
+        dataframes.append(df[['SYMBOL', 'CLOSE']])
+
+    combined_df = pd.concat(dataframes)
+
+    low_dict = combined_df.groupby('SYMBOL')['CLOSE'].min().to_dict()
+        
     os.system('cls')
     for symbol in tqdm(current_report["SYMBOL"], desc=f"Generating report of last {sheet_name}"):
-        if symbol in df["SYMBOL"].tolist():
-            report_index = current_report.index.get_loc(
-                current_report[current_report['SYMBOL'] == symbol].index[0])
-            df_index = df.index.get_loc(df[df['SYMBOL'] == symbol].index[0])
-            old_close = df.at[df_index, 'CLOSE']
-            current_close = current_report.at[report_index, 'CLOSE']
+        report_index = current_report.index.get_loc(current_report[current_report['SYMBOL'] == symbol].index[0])
+        current_close = current_report.at[report_index, 'CLOSE']
+        roc = ((current_close - low_dict[symbol]) / current_close) * 100
+        roc_dict[symbol] = roc
 
-            roc = ((current_close - old_close) / old_close) * 100
-            roc_dict[symbol] = roc
 
-    current_report = current_report.query('SERIES == "EQ"')
-    df = df.query('SERIES == "EQ"')  # Adjust as needed
+    current_report.insert(len(current_report.columns), 'ROC', value=current_report['SYMBOL'].map(roc_dict))
+    current_report.insert(len(current_report.columns), 'LC', value=current_report['SYMBOL'].map(low_dict))
 
-    # Adding ROC column mapping to Symbol names
-    current_report.insert(len(current_report.columns),
-                          'ROC', value=current_report['SYMBOL'].map(roc_dict))
-
-    current_report = current_report.sort_values(by='ROC', ascending=False)
+    current_report = current_report.sort_values(by='ROC', ascending=True)
 
     header_columns = current_report.columns.tolist()
     update_workbook(sheet_name, header_columns)
@@ -86,7 +101,76 @@ def roc(directory: str):
             writer, sheet_name, index=False, startrow=start_row, header=None)
 
     color_cells(sheet_name, start_row)
+
+
+def calculate_roc_subset(symbols: list[str], directory: str):
+    del_columns = ['TOTTRDVAL', 'TIMESTAMP', 'TOTALTRADES',
+                   'ISIN', 'Unnamed: 13', 'LAST', 'OPEN', 'HIGH', 'LOW']
+
+    sheet_name = directory.split('/')[1]
+
+    roc_dict = {}
+    dataframes = []
+
+    files_list = [file for file in os.listdir(directory) if file.endswith(".csv")]
+
+    current_report = pd.read_csv(os.path.join(directory, files_list[-1]))
+    current_report = current_report.query('SERIES == "EQ"').reset_index(drop=True)
+
+    os.system('cls')
+
+    for file in files_list:
+        file_path = os.path.join(directory, file)
+        df = pd.read_csv(file_path)
+        df = df.query('SERIES == "EQ"')
+        dataframes.append(df[['SYMBOL', 'CLOSE']])
+
+    combined_df = pd.concat(dataframes)
+
+    low_dict = combined_df.groupby('SYMBOL')['CLOSE'].min().to_dict()
     
+    for symbol in symbols:
+        if symbol in df["SYMBOL"].tolist() and symbol in current_report["SYMBOL"].tolist():
+            report_index = current_report.index.get_loc(current_report[current_report['SYMBOL'] == symbol].index[0])
+            current_close = current_report.at[report_index, 'CLOSE']
+
+            roc = ((current_close - low_dict[symbol]) / current_close) * 100
+            roc_dict[symbol] = roc
+
+    d2_report = pd.read_csv(os.path.join(directory, files_list[-2]))
+    d3_report = pd.read_csv(os.path.join(directory, files_list[-3]))
+
+    d2 = dict(zip(d2_report['SYMBOL'], d2_report['PREVCLOSE']))
+    d3 = dict(zip(d3_report['SYMBOL'], d3_report['PREVCLOSE']))
+    current_report.insert(len(current_report.columns),
+                          'D2PREVCLOSE', value=current_report['SYMBOL'].map(d2))
+    current_report.insert(len(current_report.columns),
+                          'D3PREVCLOSE', value=current_report['SYMBOL'].map(d3))
+
+
+
+    # print(len(current_report.columns))
+    # time.sleep(5)
+    
+    current_report.insert(len(current_report.columns),'ROC', value=current_report['SYMBOL'].map(roc_dict))
+   
+    # print(len(current_report.columns))
+    # time.sleep(5)
+
+    current_report.insert(len(current_report.columns), 'LC', value=current_report['SYMBOL'].map(low_dict))
+    
+    # print(len(current_report.columns))
+    # time.sleep(5)
+
+    current_report = current_report.sort_values(by='ROC', ascending=True)
+    current_report = current_report.query(c.QUERY)
+
+    for col in del_columns:
+        current_report.pop(col)
+
+    with pd.ExcelWriter(c.RESULTS_FILE, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+        current_report.head(50).to_excel(writer, sheet_name, index=False)
+
 
 if __name__ == "__main__":
-    roc("DATA/5 DAYS", 2)
+    calculate_roc("DATA/5 DAYS", 2)

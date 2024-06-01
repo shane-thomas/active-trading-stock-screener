@@ -23,7 +23,7 @@ async def extracting(response: ClientResponse, counter: int) -> None:
         path = f"{cwd}/{c.FIVE_DAYS_PATH}/{filename}"
         await rename(path)
     if counter < 30:
-        zipfile.extract(filename, f"{  cwd}/{c.ONE_MONTH_PATH}")
+        zipfile.extract(filename, f"{cwd}/{c.ONE_MONTH_PATH}")
         path = f"{cwd}/{c.ONE_MONTH_PATH}/{filename}"
         await rename(path)
 
@@ -55,7 +55,7 @@ async def get_files() -> None:
 def get_tasks(session: aiohttp.ClientSession):
     tasks = []
     # current_date = date.today() - timedelta(days=1)
-    current_date = date(2024, 5, 27)
+    current_date = date(2024, 5, 30)
     for i in range(150):
         if current_date.weekday() < 5:
             url = f"{c.URL}{current_date.strftime(
@@ -67,7 +67,6 @@ def get_tasks(session: aiohttp.ClientSession):
         current_date = current_date - timedelta(days=1)
     return tasks
 
-    
 
 def reload():
     cwd = os.getcwd()
